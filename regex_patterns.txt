@@ -1,0 +1,18 @@
+# Digits
+
+\d : one digit
+\d+ : one or more digits
+
+# Letters/Words
+
+\w : letter/number/underscore
+\w+ : whole word
+
+# Exact characters
+
+\. : dot(.)
+
+# Groups
+
+( ... )
+
