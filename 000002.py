@@ -133,7 +133,7 @@ def parse_auth_log(filename):
         if svc_match:
             service = svc_match.group(1)
             pid = svc_match.group(2)
-            message = svc.match.group(3)
+            message = svc_match.group(3)
 
         # Determine event type
 
@@ -165,144 +165,20 @@ def parse_auth_log(filename):
         events.append(event)
         stats.update(event)
 
-        print(f"\n📊 Parse Statistics:")
-        print(f"  Total lines: {stats.total_lines}")
-        print(f"  Parsed events: {stats.parsed_events}")
-        print(f"  Failed parses: {stats.failed_parses}")
-        print(f"\n📈 Event Types:")
-        for event_type, count in stats.event_counts.items():
-            print(f"  {event_type}: {count}")
+    print(f"\n📊 Parse Statistics:")
+    print(f"  Total lines: {stats.total_lines}")
+    print(f"  Parsed events: {stats.parsed_events}")
+    print(f"  Failed parses: {stats.failed_parses}")
+    print(f"\n📈 Event Types:")
+    for event_type, count in stats.event_counts.items():
+        print(f"  {event_type}: {count}")
     
     return events
 
-
-
-with open("auth.log", "r") as file:
-    raw = file.read()
-
-chunks = re.split(f"(?={TIMESTAMP_RE})", raw)
-
-for line in chunks:
-        
-        line = line.strip()
-        if not line:
-            continue
-
-        # --------------------
-        # Timestamp (anywhere)
-        # --------------------
-
-        ts_match = re.search(TIMESTAMP_RE, line)
-        if not ts_match:
-            continue
-
-        timestamp = ts_match.group()
-        
-        # --------------------
-        # Host (after timestamp)
-        # --------------------
-
-        after_ts = line.split(timestamp, 1)[1].strip()
-        parts = after_ts.split()
-
-
-        if len(parts) < 1:
-            continue
-
-        host = parts[0]
-
-        if len(parts) < 2:
-            continue
-        
-        # --------------------
-        # Service + Message
-        # --------------------
-
-        remainder = " ".join(parts[1:])
-
-        service = None
-        pid = None
-        message = remainder
-
-        svc_match = re.match(r"(\w+)(\[(\d+)\])?:\s(.*)", remainder)
-        if svc_match:
-            service = svc_match.group(1)
-            pid = svc_match.group(3)
-            message = svc_match.group(4)
-
-        # --------------------
-        # Event Type (regex)
-        # --------------------
-
-        event_type = None
-
-        for e_type, pattern in EVENT_PATTERNS.items():
-            if re.search(pattern, message):
-                event_type = e_type
-                break
-
-        # --------------------
-        # IP Extraction
-        # --------------------
-
-        ip_match = re.search(IP_RE, message)
-        if ip_match:
-            ip = ip_match.group()
-        else:
-            ip = None
-
-        # --------------------
-        # USER Extraction
-        # --------------------
-
-        user = None
-
-        invalid_match = re.search(r"invalid user (\w+)", message)
-        if invalid_match:
-            user = invalid_match.group(1)
-        else:
-            user_match = re.search(r"(?:for|of)\s(\w+)", message)
-            if user_match:
-                user = user_match.group(1)
-            else:
-                user_match_2 = re.search(r"/home/(\w+)/", message)
-                if user_match_2:
-                    user = user_match_2.group(1)
-
-        # --------------------
-        # Structure Output
-        # --------------------
-
-        events.append({
-            "timestamp": timestamp,
-            "host": host,
-            "service": service,
-            "pid": pid,
-            "event_type": event_type,
-            "user": user,
-            "ip": ip,
-            "message": message
-        })
-
-        
-# Converting Data
-
-df = pd.DataFrame(events)
-
-suspicious_patterns = {
-    "multiple_failures": r"failed_login",
-    "invalid_user": r"invalid_user",
-    "root_attempts": r"root|admin|administrator",
-}
-        
-def detect_suspicious_ips(df, username_col = "user", status_col = "event_type"):
-
-    failed = df[df[status_col].str.contains("failed|denied", case = False, na = False)]
-
-    suspicious = failed.groupby(["ip", "user"]).size()
+if __name__ == "__main__":
+    print("Running log parser as main script...")
+    events = parse_auth_log("auth.log")
     
 
-    return suspicious
 
-print(detect_suspicious_ips(df))
 
