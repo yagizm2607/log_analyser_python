@@ -24,4 +24,4 @@ Thumbs.db
 .idea/
 
 # Unnecessary text files
-regex_patterns.txt
+.txt
