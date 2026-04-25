@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import re as re
 from datetime import datetime
+import sys
 
 # System Logs Typical Structure
 # timestamp -  host - service - process_id - message
@@ -59,8 +60,9 @@ def validate_event(event):
     if event["timestamp"] and event["host"]:
 
         try:
-            fake_date = f"2024 {event["timestamp"]}"
-            datetime.strptime(fake_date, "%Y %b %d %H:%M:%S")
+            current_year = datetime.now().year
+            fake_date = f"{current_year} {event['timestamp']}"
+            
         except:
             event["parse_warning"] = "Invalid timestamp format"
 
@@ -77,7 +79,7 @@ class LogStats:
     def update(self, event):
         self.parsed_events += 1
         event_type = event.get("event_type", "unknown")
-        self.event_counts["event_type"] = self.event_counts.get(event_type, 0) + 1
+        self.event_counts[event_type] = self.event_counts.get(event_type, 0) + 1
 
 def parse_auth_log(filename):
     events = []
@@ -85,7 +87,7 @@ def parse_auth_log(filename):
 
     TIMESTAMP_RE = r"[A-Z][a-z]{2,3} \d{1,2} \d{2}:\d{2}:\d{2}"
     IP_RE = r"\d+\.\d+\.\d+\.\d+"
-    PID_RE = r"\[(\d+)\]"
+    # PID_RE = r"\[(\d+)\]"
 
     try:
         with open(filename, "r") as file:
@@ -150,8 +152,14 @@ def parse_auth_log(filename):
 
         user = extract_user(message, event_type)
 
+        try:
+            dt = datetime.strptime(f"{datetime.now().year} {timestamp}", 
+                                              "%Y %b %d %H:%M:%S")
+        except:
+            dt = None
+
         event = {
-            "timestamp": timestamp,
+            "timestamp": dt,
             "host": host,
             "service": service,
             "pid": pid,
@@ -173,12 +181,18 @@ def parse_auth_log(filename):
     for event_type, count in stats.event_counts.items():
         print(f"  {event_type}: {count}")
     
-    return events
+    return pd.DataFrame(events)
 
 if __name__ == "__main__":
     print("Running log parser as main script...")
-    events = parse_auth_log("auth.log")
     
+    if (len(sys.argv)) > 1:
+        log_filename = sys.argv[1]
+    else:
+        log_filename = "auth.log"
+        print(f"No filename provided, using default: {log_filename}")
+
+    events = parse_auth_log(log_filename)
 
 
 

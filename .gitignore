@@ -22,3 +22,6 @@ Thumbs.db
 # IDE / editor settings
 .vscode/
 .idea/
+
+# Unnecessary text files
+regex_patterns.txt
